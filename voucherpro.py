@@ -424,11 +424,11 @@ div[data-baseweb="select"] > div:focus-within{
 DB_FILE = Path("voucher_db.sqlite")  # legacy; not used by Postgres but kept for compatibility
 
 # PostgreSQL connection settings (configure via environment variables)
-PG_HOST = "localhost"
-PG_PORT = 5433
-PG_DB   = "voucher_app"
-PG_USER = "postgres"
-PG_PASS = "admin"
+PG_HOST = "pg-cb495ce-adexsy94-643a.i.aivencloud.com"
+PG_PORT = 14073
+PG_DB   = "defaultdb"
+PG_USER = "avnadmin"
+PG_PASS = "AVNS_HW9bgleEeofjFFF21iW"
 
 
 
@@ -3437,11 +3437,11 @@ st.markdown("""
 # ---------------------------- DB core (PostgreSQL) ----------------------------
 
 # These env vars let you host CRM in the same DB or a different DB.
-CRM_PG_HOST = "localhost"
-CRM_PG_PORT = 5433                 # IMPORTANT: same port you saw in SQL Shell
-CRM_PG_DB   = "voucher_app"
-CRM_PG_USER = "postgres"
-CRM_PG_PASS = "admin"  # same password you typed in SQL Shell (psql)
+CRM_PG_HOST = "pg-cb495ce-adexsy94-643a.i.aivencloud.com"
+CRM_PG_PORT = 14073                # IMPORTANT: same port you saw in SQL Shell
+CRM_PG_DB   = "defaultdb"
+CRM_PG_USER = "avnadmin"
+CRM_PG_PASS = "AVNS_HW9bgleEeofjFFF21iW"  # same password you typed in SQL Shell (psql)
 
 STAFF_DOCS_DIR = os.path.join("storage", "staff_docs")
 os.makedirs(STAFF_DOCS_DIR, exist_ok=True)
