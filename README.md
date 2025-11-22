@@ -1,8 +1,3 @@
-Here is a clean, professional **README.md** tailored specifically for your **VoucherPro (Streamlit + Aiven PostgreSQL)** project.
-You can copy-paste it directly into a file named **`README.md`** in your GitHub repo.
-
----
-
 # VoucherPro — Streamlit + Aiven PostgreSQL
 
 VoucherPro is a complete voucher & invoice management system built with **Python**, **Streamlit**, and **PostgreSQL**.
