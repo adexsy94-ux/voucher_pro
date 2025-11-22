@@ -435,7 +435,28 @@ PG_PASS = "AVNS_HW9bgleEeofjFFF21iW"
 def connect():
     """
     Open a new PostgreSQL connection to Aiven using the service URI.
+    This uses the connection information you provided from Aiven.
     """
+    dsn = (
+        "postgres://avnadmin:AVNS_HW9bgleEeofjFFF21iW"
+        "@pg-cb495ce-adexsy94-643a.i.aivencloud.com:14073"
+        "/defaultdb?sslmode=require"
+    )
+
+    try:
+        return psycopg2.connect(
+            dsn,
+            cursor_factory=DictCursor,
+        )
+    except Exception as e:
+        # Show the real error in the Streamlit UI for easier debugging
+        try:
+            st.error(f"Database connection error: {e}")
+        except Exception:
+            pass
+        raise
+
+
     dsn = (
         "postgres://avnadmin:AVNS_HW9bgleEeofjFFF21iW"
         "@pg-cb495ce-adexsy94-643a.i.aivencloud.com:14073"
