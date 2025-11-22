@@ -435,47 +435,17 @@ PG_PASS = "AVNS_HW9bgleEeofjFFF21iW"
 def connect():
     """
     Open a new PostgreSQL connection to Aiven using the service URI.
-    This uses the connection information you provided from Aiven.
     """
     dsn = (
         "postgres://avnadmin:AVNS_HW9bgleEeofjFFF21iW"
         "@pg-cb495ce-adexsy94-643a.i.aivencloud.com:14073"
         "/defaultdb?sslmode=require"
     )
-
-    try:
-        return psycopg2.connect(
-            dsn,
-            cursor_factory=DictCursor,
-        )
-    except Exception as e:
-        # Show the real error in the Streamlit UI for easier debugging
-        try:
-            st.error(f"Database connection error: {e}")
-        except Exception:
-            pass
-        raise
-
-
-    dsn = (
-        "postgres://avnadmin:AVNS_HW9bgleEeofjFFF21iW"
-        "@pg-cb495ce-adexsy94-643a.i.aivencloud.com:14073"
-        "/defaultdb?sslmode=require"
+    return psycopg2.connect(
+        dsn,
+        cursor_factory=DictCursor,
     )
-
-    try:
-        return psycopg2.connect(
-            dsn,
-            cursor_factory=DictCursor,
-        )
-    except Exception as e:
-        # Surface the real error in the Streamlit UI for easier debugging
-        try:
-            st.error(f"Database connection error: {e}")
-        except Exception:
-            # st may not be initialised yet; just re-raise
-            pass
-        raise_init_auth()
+_init_auth()
 
 def now_iso() -> str:
     return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
@@ -1914,6 +1884,40 @@ def build_voucher_pdf_bytes(
     return buffer.getvalue()
 
 
+# ============================ DB BROWSER ================================
+
+def show_db_browser():
+    """Simple database browser to inspect tables and first 100 rows."""
+    st.markdown("<h1>Database Browser</h1>", unsafe_allow_html=True)
+    try:
+        with closing(connect()) as conn:
+            # List tables in public schema
+            tables_df = pd.read_sql(
+                """
+                SELECT table_name
+                FROM information_schema.tables
+                WHERE table_schema = 'public'
+                ORDER BY table_name
+                """,
+                conn,
+            )
+        if tables_df.empty:
+            st.info("No tables found in this database yet.")
+            return
+
+        table_name = st.selectbox("Select a table", tables_df["table_name"])
+
+        if table_name:
+            with closing(connect()) as conn:
+                data_df = pd.read_sql(
+                    f'SELECT * FROM "{table_name}" LIMIT 100;',
+                    conn,
+                )
+            st.write(f"First 100 rows from `{table_name}`:")
+            st.dataframe(data_df, use_container_width=True)
+    except Exception as e:
+        st.error(f"Error while browsing database: {e}")
+
 # ============================ APP UI =================================
 
 _require_login()
@@ -1925,12 +1929,18 @@ if "app_section" not in st.session_state:
 with st.sidebar:
     st.markdown("## Voucher & CRM")
     st.markdown("Manage vouchers and CRM records from one place.")
-    app_section = st.radio(
-        "Go to:",
-        ["VoucherPro", "CRM / Ops Master"],
-        index=0 if st.session_state["app_section"] == "VoucherPro" else 1,
-        key="app_section"
-    )
+    app_options = ["VoucherPro", "CRM / Ops Master", "DB Browser"]
+current_section = st.session_state.get("app_section", "VoucherPro")
+try:
+    current_index = app_options.index(current_section)
+except ValueError:
+    current_index = 0
+app_section = st.radio(
+    "Go to:",
+    app_options,
+    index=current_index,
+    key="app_section"
+)
     st.markdown("---")
     # show logged in user and logout
     current_user = st.session_state.get("user", None)
@@ -4704,3 +4714,5 @@ if app_section == "CRM / Ops Master":
             """
         )
         st.dataframe(df_job_rollup, use_container_width=True)
+if app_section == "DB Browser":
+    show_db_browser()
