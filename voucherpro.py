@@ -434,19 +434,27 @@ PG_PASS = "AVNS_HW9bgleEeofjFFF21iW"
 
 def connect():
     """
-    Open a new PostgreSQL connection to Aiven.
-    Uses DictCursor so rows can be accessed like dicts if needed.
+    Open a new PostgreSQL connection to Aiven using the service URI.
     """
-    return psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        dbname=PG_DB,
-        user=PG_USER,
-        password=PG_PASS,
-        sslmode="require",
-        cursor_factory=DictCursor,
+    dsn = (
+        "postgres://avnadmin:AVNS_HW9bgleEeofjFFF21iW"
+        "@pg-cb495ce-adexsy94-643a.i.aivencloud.com:14073"
+        "/defaultdb?sslmode=require"
     )
-_init_auth()
+
+    try:
+        return psycopg2.connect(
+            dsn,
+            cursor_factory=DictCursor,
+        )
+    except Exception as e:
+        # Surface the real error in the Streamlit UI for easier debugging
+        try:
+            st.error(f"Database connection error: {e}")
+        except Exception:
+            # st may not be initialised yet; just re-raise
+            pass
+        raise_init_auth()
 
 def now_iso() -> str:
     return datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
