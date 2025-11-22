@@ -421,30 +421,91 @@ div[data-baseweb="select"] > div:focus-within{
 """, unsafe_allow_html=True)
 
 # =========================== DB & AUDIT =============================
-DB_FILE = Path("voucher_db.sqlite")  # legacy; not used by Postgres but kept for compatibility
-
-# PostgreSQL connection settings (configure via environment variables)
-PG_HOST = "pg-cb495ce-adexsy94-643a.i.aivencloud.com"
-PG_PORT = 14073
-PG_DB   = "defaultdb"
-PG_USER = "avnadmin"
-PG_PASS = "AVNS_HW9bgleEeofjFFF21iW"
-
+DB_FILE = Path("voucher_db.sqlite")  # legacy; ignored in PostgreSQL mode
 
 
 def connect():
     """
     Open a new PostgreSQL connection.
-    Uses DictCursor so rows can be accessed like dicts if needed.
+
+    Priority for config:
+    1) Streamlit secrets: st.secrets["aiven"]
+    2) Environment variables: PGHOST, PGPORT, PGDATABASE, PGUSER, PGPASSWORD, PGSSLMODE
+    3) Optional local fallback (only if everything else is missing)
     """
-    return psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        dbname=PG_DB,
-        user=PG_USER,
-        password=PG_PASS,
-        cursor_factory=DictCursor,
-    )
+    # -------- 1) Try Streamlit secrets (for Streamlit Cloud + local dev) --------
+    host = None
+    port = None
+    dbname = None
+    user = None
+    password = None
+    sslmode = None
+
+    try:
+        if "aiven" in st.secrets:
+            aiven_cfg = st.secrets["aiven"]
+            host = aiven_cfg.get("host")
+            port = aiven_cfg.get("port")
+            dbname = aiven_cfg.get("dbname") or aiven_cfg.get("database")
+            user = aiven_cfg.get("user")
+            password = aiven_cfg.get("password")
+            sslmode = aiven_cfg.get("sslmode", "require")
+    except Exception:
+        # If secrets are not available (e.g. running plain python), we'll fall back to env
+        pass
+
+    # -------- 2) Fallback to environment variables (for local dev) ------------
+    if not host:
+        host = os.getenv("PGHOST")
+    if not port:
+        port = os.getenv("PGPORT")
+    if not dbname:
+        dbname = os.getenv("PGDATABASE")
+    if not user:
+        user = os.getenv("PGUSER")
+    if not password:
+        password = os.getenv("PGPASSWORD")
+    if not sslmode:
+        sslmode = os.getenv("PGSSLMODE", "require")  # Aiven needs sslmode=require
+
+    # -------- 3) Optional last fallback: local Postgres (only if nothing set) ---
+    if not host:
+        host = "pg-cb495ce-adexsy94-643a.i.aivencloud.com"
+    if not port:
+        port = 14073
+    if not dbname:
+        dbname = "defaultdb"
+    if not user:
+        user = "avnadmin"
+    # ⚠ DO NOT hard-code your real Aiven password here in GitHub.
+    #    Make sure PGPASSWORD or st.secrets["aiven"]["password"] is set.
+    if not password:
+        raise RuntimeError(
+            "Database password is not configured. "
+            "Set it in Streamlit secrets (aiven.password) or in PGPASSWORD env var."
+        )
+
+    # Ensure port is an int
+    try:
+        port = int(port)
+    except Exception:
+        port = 14073
+
+    # Build connection kwargs
+    conn_kwargs = {
+        "host": host,
+        "port": port,
+        "dbname": dbname,
+        "user": user,
+        "password": password,
+        "cursor_factory": DictCursor,
+    }
+
+    if sslmode:
+        conn_kwargs["sslmode"] = sslmode
+
+    return psycopg2.connect(**conn_kwargs)
+
 
 _init_auth()
 
